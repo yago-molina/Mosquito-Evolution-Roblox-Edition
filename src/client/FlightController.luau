@@ -45,7 +45,7 @@ local function cleanup(): ()
     if inputEndedConnection then inputEndedConnection:Disconnect(); inputEndedConnection = nil end
     table.clear(keys)
     table.clear(wings)
-    if controls then controls:Enable() end
+    if controls then controls:Enable(); controls = nil end
     UserInputService.MouseBehavior = Enum.MouseBehavior.Default
     local cam = Workspace.CurrentCamera
     if cam then cam.CameraType = Enum.CameraType.Custom end
@@ -60,22 +60,34 @@ function FlightController.start(character: Model, onStamina: (number, boolean) -
     humanoid = hum :: Humanoid
     local visual = character:WaitForChild("MosquitoVisual", 10)
     if not visual then warn("[MOSQUITO] Modelo MosquitoVisual nao encontrado"); return end
-    for _, obj in visual:GetDescendants() do
+    -- Os Motor6D das asas foram criados dentro do HumanoidRootPart,
+    -- nao dentro do MosquitoVisual.
+    for _, obj in character:GetDescendants() do
         if obj:IsA("Motor6D") and obj.Name == "WingMotor" then
             table.insert(wings, obj)
         end
     end
 
-    -- Desativa WASD do controlador Roblox para evitar disputa de fisica.
-    local playerScripts = player:WaitForChild("PlayerScripts")
-    local success, playerModule = pcall(function()
-        return require(playerScripts:WaitForChild("PlayerModule"))
-    end)
-    if success then
-        controls = playerModule:GetControls()
-        controls:Disable()
+    -- PlayerModule pode nao existir no Studio (custom StarterPlayerScripts).
+    -- NUNCA usar WaitForChild sem limite para esse modulo opcional.
+    -- A falta dele nao deve impedir inicializacao de voo, input ou animacao.
+    local playerScripts = player:FindFirstChild("PlayerScripts")
+    local module = if playerScripts then playerScripts:FindFirstChild("PlayerModule") else nil
+    if module and module:IsA("ModuleScript") then
+        local success, result = pcall(function()
+            return require(module)
+        end)
+        if success and type(result) == "table" and type(result.GetControls) == "function" then
+            local ok, controller = pcall(function() return result:GetControls() end)
+            if ok and controller then
+                controls = controller
+                controls:Disable()
+            end
+        else
+            warn("[MOSQUITO] PlayerModule indisponivel; usando movimento proprio.")
+        end
     else
-        warn("[MOSQUITO] Nao foi possivel desativar controles padrao", playerModule)
+        print("[MOSQUITO] PlayerModule ausente: controle de voo independente ativado.")
     end
 
     local camera = Workspace.CurrentCamera
@@ -142,7 +154,10 @@ function FlightController.start(character: Model, onStamina: (number, boolean) -
         local cameraForward = Vector3.new(-math.sin(yaw) * math.cos(pitch), math.sin(pitch), -math.cos(yaw) * math.cos(pitch))
         local focus = root.Position + Vector3.new(0, 0.45, 0)
         local desiredPosition = focus - cameraForward * CAMERA_DISTANCE + Vector3.new(0, CAMERA_HEIGHT, 0)
-        local ray = Workspace:Raycast(focus, desiredPosition - focus, RaycastParams.new())
+        local params = RaycastParams.new()
+        params.FilterType = Enum.RaycastFilterType.Exclude
+        params.FilterDescendantsInstances = {character}
+        local ray = Workspace:Raycast(focus, desiredPosition - focus, params)
         if ray and ray.Instance and not ray.Instance:IsDescendantOf(character) then
             desiredPosition = ray.Position + ray.Normal * 0.25
         end
