@@ -4,7 +4,7 @@ Adaptação em Roblox/Luau do jogo [Mosquito Evolution original](https://github.
 
 ## Estado
 
-**Fase 1 — Fundação.** Estrutura Rojo, cena de teste e scripts de inicialização. O voo, as evoluções e o multiplayer serão construídos nas próximas fases.
+**Fase 2 — concluída (v0.2.4, aprovada em testes no Studio).** Modelo de mosquito, voo livre, câmera, stamina, asas, colisões preventivas e controles mobile no emulador. **Próxima etapa: Fase 3 — coleta de sangue e evolução.**
 
 ## Início rápido
 
@@ -12,7 +12,7 @@ Adaptação em Roblox/Luau do jogo [Mosquito Evolution original](https://github.
 2. Clone este repositório.
 3. Na pasta do projeto, execute `rojo serve`.
 4. Abra um projeto Baseplate no Roblox Studio e conecte o plugin Rojo à porta 34872.
-5. Clique **Play**. O servidor cria uma pequena área de teste e um mosquito demonstrativo.
+5. Clique **Play**. O servidor cria a área de testes e substitui visualmente o avatar por um mosquito controlável.
 
 Leia [docs/SETUP.md](docs/SETUP.md) para instruções completas. 
 

@@ -3,8 +3,8 @@
 Cada fase só é considerada concluída depois de testes no Roblox Studio.
 
 1. **Fundação** — estrutura Rojo, inicialização, documentação e primeiro teste no Studio.
-2. **Mosquito jogável** — modelo, câmera, voo, colisão, sprint e stamina.
-3. **Progressão** — sangue, HUD, quatro upgrades e 13 estágios de evolução.
+2. **Mosquito jogável — APROVADO em Studio (v0.2.4)** — modelo, câmera, voo, colisão, sprint, stamina e controle mobile no emulador. Teste em celular físico e sincronização multiplayer ainda pendentes.
+3. **Progressão — PRÓXIMA FASE** — sangue, HUD, quatro upgrades e 13 estágios de evolução. Critérios e arquitetura: [PHASE_3_PLAN.md](PHASE_3_PLAN.md).
 4. **Escola** — mapa em módulos baseado no original, portas e interação.
 5. **NPCs e combate** — humanos, picadas, dano, comportamento e dificuldade.
 6. **Skins e segredos** — coleção, 17 skins, habilidades e conquistas.
