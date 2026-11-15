@@ -67,6 +67,52 @@ local barRound = Instance.new("UICorner")
 barRound.CornerRadius = UDim.new(1, 0)
 barRound.Parent = bar
 
+-- HUD economico separado, para preservar a barra e os controles validados.
+local moneyPanel = Instance.new("Frame")
+moneyPanel.Name = "BloodPanel"
+moneyPanel.Size = UDim2.fromOffset(220, 89)
+moneyPanel.Position = UDim2.fromOffset(18, 160)
+moneyPanel.BackgroundColor3 = Color3.fromRGB(22, 16, 28)
+moneyPanel.BackgroundTransparency = 0.06
+moneyPanel.Parent = gui
+local moneyCorner = Instance.new("UICorner")
+moneyCorner.CornerRadius = UDim.new(0, 12)
+moneyCorner.Parent = moneyPanel
+
+local bloodText = Instance.new("TextLabel")
+bloodText.Name = "Saldo"
+bloodText.Size = UDim2.new(1, -20, 0, 43)
+bloodText.Position = UDim2.fromOffset(10, 4)
+bloodText.BackgroundTransparency = 1
+bloodText.TextColor3 = Color3.fromRGB(255, 100, 125)
+bloodText.Font = Enum.Font.GothamBold
+bloodText.TextSize = 23
+bloodText.TextXAlignment = Enum.TextXAlignment.Left
+bloodText.Parent = moneyPanel
+
+local comboText = Instance.new("TextLabel")
+comboText.Name = "Combo"
+comboText.Size = UDim2.new(1, -20, 0, 30)
+comboText.Position = UDim2.fromOffset(10, 49)
+comboText.BackgroundTransparency = 1
+comboText.TextColor3 = Color3.fromRGB(255, 207, 115)
+comboText.Font = Enum.Font.Gotham
+comboText.TextSize = 14
+comboText.TextXAlignment = Enum.TextXAlignment.Left
+comboText.Parent = moneyPanel
+
+local function updateBlood()
+    local total = player:GetAttribute("Blood")
+    local combo = player:GetAttribute("BloodCombo")
+    local gained = player:GetAttribute("LastBloodGain")
+    bloodText.Text = "SANGUE  " .. tostring(if typeof(total) == "number" then total else 0)
+    comboText.Text = string.format("Combo x%d  |  +%d", if typeof(combo) == "number" then combo else 0, if typeof(gained) == "number" then gained else 0)
+end
+player:GetAttributeChangedSignal("Blood"):Connect(updateBlood)
+player:GetAttributeChangedSignal("BloodCombo"):Connect(updateBlood)
+player:GetAttributeChangedSignal("LastBloodGain"):Connect(updateBlood)
+updateBlood()
+
 local function setup(character: Model)
     FlightController.stop()
     FlightController.start(character, function(fraction: number, sprint: boolean)

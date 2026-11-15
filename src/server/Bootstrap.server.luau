@@ -4,6 +4,8 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage:WaitForChild("MosquitoShared"):WaitForChild("GameConfig"))
 local MosquitoCharacter = require(script.Parent:WaitForChild("MosquitoCharacter"))
+local ProgressionService = require(script.Parent:WaitForChild("ProgressionService"))
+local BloodService = require(script.Parent:WaitForChild("BloodService"))
 
 local old = workspace:FindFirstChild("Mosquito_Fase1_Demo")
 if old then old:Destroy() end
@@ -44,6 +46,8 @@ local function onPlayer(player: Player)
     player.CharacterAdded:Connect(onCharacter)
     if player.Character then task.spawn(onCharacter, player.Character) end
 end
+ProgressionService.start()
+BloodService.start()
 Players.PlayerAdded:Connect(onPlayer)
 for _, player in Players:GetPlayers() do onPlayer(player) end
 print(string.format("[MOSQUITO] Servidor iniciado | versao %s | fase %d", Config.VERSION, Config.PROJECT_PHASE))
