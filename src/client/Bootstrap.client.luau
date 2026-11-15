@@ -5,6 +5,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local player = Players.LocalPlayer
 local Config = require(ReplicatedStorage:WaitForChild("MosquitoShared"):WaitForChild("GameConfig"))
 local FlightController = require(script.Parent:WaitForChild("FlightController"))
+local ShopUI = require(script.Parent:WaitForChild("ShopUI"))
 
 local parent = player:WaitForChild("PlayerGui")
 local previous = parent:FindFirstChild("MosquitoBootstrapHUD")
@@ -112,6 +113,7 @@ player:GetAttributeChangedSignal("Blood"):Connect(updateBlood)
 player:GetAttributeChangedSignal("BloodCombo"):Connect(updateBlood)
 player:GetAttributeChangedSignal("LastBloodGain"):Connect(updateBlood)
 updateBlood()
+ShopUI.mount(gui)
 
 local function setup(character: Model)
     FlightController.stop()

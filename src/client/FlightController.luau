@@ -197,14 +197,20 @@ function FlightController.start(character: Model, onStamina: (number, boolean) -
         if pressed(Enum.KeyCode.LeftControl) or pressed(Enum.KeyCode.RightControl) then direction -= Vector3.yAxis end
         if direction.Magnitude > 0 then direction = direction.Unit end
 
+        local wingLevel = player:GetAttribute("Upgrade_wings")
+        local wingBonus = if typeof(wingLevel) == "number" then wingLevel else 0
+        local bodyLevel = player:GetAttribute("Upgrade_body")
+        local bodyBonus = if typeof(bodyLevel) == "number" then bodyLevel else 0
+        local maxStamina = STAMINA_MAX + bodyBonus * 15
+        local recovery = STAMINA_RECOVERY + bodyBonus * 4
         sprinting = pressed(Enum.KeyCode.LeftShift) and direction.Magnitude > 0 and stamina > 0
         if sprinting then
             stamina = math.max(0, stamina - STAMINA_DRAIN * dt)
         else
-            stamina = math.min(STAMINA_MAX, stamina + STAMINA_RECOVERY * dt)
+            stamina = math.min(maxStamina, stamina + recovery * dt)
         end
         -- Suaviza a aceleracao sem perder responsividade.
-        local desiredVelocity = direction * (if sprinting then SPRINT_SPEED else SPEED)
+        local desiredVelocity = direction * (if sprinting then SPRINT_SPEED + wingBonus * 2.2 else SPEED + wingBonus * 1.5)
         local currentVelocity = root.AssemblyLinearVelocity
         local smoothing = math.clamp(dt * (if direction.Magnitude > 0 then 12 else 16), 0, 1)
         local velocity = currentVelocity:Lerp(desiredVelocity, smoothing)
@@ -228,7 +234,7 @@ function FlightController.start(character: Model, onStamina: (number, boolean) -
         -- A frente do mosquito acompanha o olhar da camera no eixo horizontal.
         root.CFrame = CFrame.lookAt(root.Position, root.Position + forwardFlat)
         humanoid:ChangeState(Enum.HumanoidStateType.Physics)
-        onStamina(stamina / STAMINA_MAX, sprinting)
+        onStamina(stamina / maxStamina, sprinting)
     end)
     RunService:BindToRenderStep("MosquitoCamera", Enum.RenderPriority.Camera.Value + 1, function(dt: number)
         if not active or not root or not root.Parent then return end

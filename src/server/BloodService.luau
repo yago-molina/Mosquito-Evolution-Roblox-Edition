@@ -117,7 +117,9 @@ function BloodService.start()
                 local root = if character then character:FindFirstChild("HumanoidRootPart") else nil
                 if humanoid and humanoid.Health > 0 and root and root:IsA("BasePart")
                     and character and character:GetAttribute("MosquitoReady") == true then
-                    if (root.Position - drop.part.Position).Magnitude <= COLLECT_RADIUS then
+                    local tromba = player:GetAttribute("Upgrade_proboscis")
+                    local reach = COLLECT_RADIUS + (if typeof(tromba) == "number" then tromba * 0.25 else 0)
+                    if (root.Position - drop.part.Position).Magnitude <= reach then
                         collect(player, drop, now)
                         break
                     end
