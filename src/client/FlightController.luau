@@ -25,7 +25,7 @@ local yaw = 0
 local pitch = -0.15
 local root: BasePart? = nil
 local humanoid: Humanoid? = nil
-local wings: {Motor6D} = {}
+local wings: {{motor: Motor6D, base: CFrame, side: number}} = {}
 local timeAlive = 0
 local updated: RBXScriptConnection? = nil
 local mouseConnection: RBXScriptConnection? = nil
@@ -44,6 +44,11 @@ local function cleanup(): ()
     if inputBeganConnection then inputBeganConnection:Disconnect(); inputBeganConnection = nil end
     if inputEndedConnection then inputEndedConnection:Disconnect(); inputEndedConnection = nil end
     table.clear(keys)
+    for _, wing in wings do
+        if wing.motor.Parent then
+            wing.motor.C0 = wing.base
+        end
+    end
     table.clear(wings)
     if controls then controls:Enable(); controls = nil end
     UserInputService.MouseBehavior = Enum.MouseBehavior.Default
@@ -63,9 +68,20 @@ function FlightController.start(character: Model, onStamina: (number, boolean) -
     -- Os Motor6D das asas foram criados dentro do HumanoidRootPart,
     -- nao dentro do MosquitoVisual.
     for _, obj in character:GetDescendants() do
-        if obj:IsA("Motor6D") and obj.Name == "WingMotor" then
-            table.insert(wings, obj)
+        if obj:IsA("Motor6D") and obj.Name == "WingMotor" and obj.Part1 then
+            local side = obj.Part1:GetAttribute("Side")
+            if typeof(side) == "number" then
+                table.insert(wings, {
+                    motor = obj,
+                    base = obj.C0,
+                    side = side,
+                })
+            end
         end
+    end
+    print(string.format("[MOSQUITO] Articulacoes das asas encontradas: %d/2", #wings))
+    if #wings ~= 2 then
+        warn("[MOSQUITO] Asas incompletas: conferir WingMotor no HumanoidRootPart")
     end
 
     -- PlayerModule pode nao existir no Studio (custom StarterPlayerScripts).
@@ -164,11 +180,13 @@ function FlightController.start(character: Model, onStamina: (number, boolean) -
         local desired = CFrame.lookAt(desiredPosition, focus + cameraForward * 1.5)
         camera.CFrame = camera.CFrame:Lerp(desired, math.clamp(dt * 12, 0, 1))
         camera.Focus = CFrame.new(focus)
-        for _, motor in wings do
-            if motor.Parent then
-                local wingPart = motor.Part1
-                local side = if wingPart then (wingPart:GetAttribute("Side") :: number?) or 1 else 1
-                motor.Transform = CFrame.Angles(0, 0, side * math.sin(timeAlive * 28) * 0.52)
+        -- Animar C0, nao Transform: Animator/Humanoid pode sobrescrever
+        -- Transform no ciclo de animacao. C0 gira a asa no proprio encaixe.
+        -- Frequencia de ~3,5 batidas/s: suficientemente visivel a 60 FPS.
+        local flap = 0.16 + math.sin(timeAlive * 22) * 0.82
+        for _, wing in wings do
+            if wing.motor.Parent then
+                wing.motor.C0 = wing.base * CFrame.Angles(0, 0, wing.side * flap)
             end
         end
     end)

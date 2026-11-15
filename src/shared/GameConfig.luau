@@ -1,7 +1,7 @@
 --!strict
 -- Fonte de verdade para valores de gameplay compartilhados.
 local GameConfig = {
-    VERSION = "0.2.1",
+    VERSION = "0.2.2",
     PROJECT_PHASE = 2,
     STAGES = {
         { minimum = 0, name = "Larva voadora" },
