@@ -1,0 +1,11 @@
+# Roblox Studio generated places and local configuration
+*.rbxl
+*.rbxlx
+*.rbxm
+*.rbxmx
+*.rbxl.lock
+*.rbxlx.lock
+.DS_Store
+Thumbs.db
+.vscode/*.log
+sourcemap.json

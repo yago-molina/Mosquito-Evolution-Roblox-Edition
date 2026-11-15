@@ -1,0 +1,24 @@
+{
+  "name": "Mosquito Evolution Roblox Edition",
+  "servePort": 34872,
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedStorage": {
+      "MosquitoShared": {
+        "$path": "src/shared"
+      }
+    },
+    "ServerScriptService": {
+      "MosquitoServer": {
+        "$path": "src/server"
+      }
+    },
+    "StarterPlayer": {
+      "StarterPlayerScripts": {
+        "MosquitoClient": {
+          "$path": "src/client"
+        }
+      }
+    }
+  }
+}
