@@ -5,6 +5,7 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
+local TouchControls = require(script.Parent:WaitForChild("TouchControls"))
 
 local player = Players.LocalPlayer
 local FlightController = {}
@@ -32,6 +33,15 @@ local mouseConnection: RBXScriptConnection? = nil
 local inputBeganConnection: RBXScriptConnection? = nil
 local inputEndedConnection: RBXScriptConnection? = nil
 local controls: any = nil
+local touchGui: ScreenGui? = nil
+local touchLook: InputObject? = nil
+local lastTouchPosition: Vector2? = nil
+local touchBeganConnection: RBXScriptConnection? = nil
+local touchMovedConnection: RBXScriptConnection? = nil
+local touchEndedConnection: RBXScriptConnection? = nil
+local collisionParams = RaycastParams.new()
+collisionParams.FilterType = Enum.RaycastFilterType.Exclude
+collisionParams.RespectCanCollide = true
 
 local function pressed(code: Enum.KeyCode): boolean
     return keys[code] == true
@@ -43,6 +53,12 @@ local function cleanup(): ()
     if mouseConnection then mouseConnection:Disconnect(); mouseConnection = nil end
     if inputBeganConnection then inputBeganConnection:Disconnect(); inputBeganConnection = nil end
     if inputEndedConnection then inputEndedConnection:Disconnect(); inputEndedConnection = nil end
+    if touchBeganConnection then touchBeganConnection:Disconnect(); touchBeganConnection = nil end
+    if touchMovedConnection then touchMovedConnection:Disconnect(); touchMovedConnection = nil end
+    if touchEndedConnection then touchEndedConnection:Disconnect(); touchEndedConnection = nil end
+    if touchGui then touchGui:Destroy(); touchGui = nil end
+    touchLook = nil
+    lastTouchPosition = nil
     table.clear(keys)
     for _, wing in wings do
         if wing.motor.Parent then
@@ -106,11 +122,41 @@ function FlightController.start(character: Model, onStamina: (number, boolean) -
         print("[MOSQUITO] PlayerModule ausente: controle de voo independente ativado.")
     end
 
+    collisionParams.FilterDescendantsInstances = {character}
     local camera = Workspace.CurrentCamera
     if not camera then warn("[MOSQUITO] Camera indisponivel"); return end
     camera.CameraType = Enum.CameraType.Scriptable
-    UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
-    UserInputService.MouseIconEnabled = false
+    if not UserInputService.TouchEnabled then
+        UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
+        UserInputService.MouseIconEnabled = false
+    else
+        touchGui = TouchControls.create(function(code: Enum.KeyCode, down: boolean)
+            keys[code] = down
+        end)
+        -- Arraste na metade central da tela para olhar; acoes nas bordas nao giram a camera.
+        touchBeganConnection = UserInputService.TouchStarted:Connect(function(input: InputObject, processed: boolean)
+            if processed or touchLook then return end
+            local viewport = camera.ViewportSize
+            if input.Position.X > viewport.X * 0.29 and input.Position.X < viewport.X * 0.73 then
+                touchLook = input
+                lastTouchPosition = Vector2.new(input.Position.X, input.Position.Y)
+            end
+        end)
+        touchMovedConnection = UserInputService.TouchMoved:Connect(function(input: InputObject)
+            if input ~= touchLook or not lastTouchPosition then return end
+            local current = Vector2.new(input.Position.X, input.Position.Y)
+            local delta = current - lastTouchPosition
+            lastTouchPosition = current
+            yaw -= delta.X * SENSITIVITY * 1.6
+            pitch = math.clamp(pitch - delta.Y * SENSITIVITY * 1.6, -1.15, 1.15)
+        end)
+        touchEndedConnection = UserInputService.TouchEnded:Connect(function(input: InputObject)
+            if input == touchLook then
+                touchLook = nil
+                lastTouchPosition = nil
+            end
+        end)
+    end
 
     local forward = root.CFrame.LookVector
     yaw = math.atan2(-forward.X, -forward.Z)
@@ -157,7 +203,27 @@ function FlightController.start(character: Model, onStamina: (number, boolean) -
         else
             stamina = math.min(STAMINA_MAX, stamina + STAMINA_RECOVERY * dt)
         end
-        root.AssemblyLinearVelocity = direction * (if sprinting then SPRINT_SPEED else SPEED)
+        -- Suaviza a aceleracao sem perder responsividade.
+        local desiredVelocity = direction * (if sprinting then SPRINT_SPEED else SPEED)
+        local currentVelocity = root.AssemblyLinearVelocity
+        local smoothing = math.clamp(dt * (if direction.Magnitude > 0 then 12 else 16), 0, 1)
+        local velocity = currentVelocity:Lerp(desiredVelocity, smoothing)
+
+        -- Antecipacao simples de colisao, adequada para o prototipo de voo.
+        -- Spherecast permite detectar paredes antes do corpo entrar nelas.
+        if velocity.Magnitude > 0.05 then
+            local castVector = velocity * math.max(dt, 0.05)
+            local hit = Workspace:Spherecast(root.Position, 0.42, castVector, collisionParams)
+            if hit then
+                local toward = velocity:Dot(hit.Normal)
+                if toward < 0 then
+                    velocity -= hit.Normal * toward
+                end
+            end
+        end
+        if root.Position.Y < 1.6 and velocity.Y < 0 then velocity = Vector3.new(velocity.X, 0, velocity.Z) end
+        if root.Position.Y > 72 and velocity.Y > 0 then velocity = Vector3.new(velocity.X, 0, velocity.Z) end
+        root.AssemblyLinearVelocity = velocity
         root.AssemblyAngularVelocity = Vector3.zero
         -- A frente do mosquito acompanha o olhar da camera no eixo horizontal.
         root.CFrame = CFrame.lookAt(root.Position, root.Position + forwardFlat)
@@ -190,7 +256,7 @@ function FlightController.start(character: Model, onStamina: (number, boolean) -
             end
         end
     end)
-    print("[MOSQUITO] Voo local ativo: WASD, Espaco, Ctrl, Shift, mouse")
+    print("[MOSQUITO] Voo ativo: PC e controles de toque; colisao preventiva habilitada")
 end
 
 function FlightController.stop(): ()

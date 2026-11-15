@@ -15,7 +15,10 @@ gui.ResetOnSpawn = false
 gui.Parent = parent
 
 local panel = Instance.new("Frame")
-panel.Size = UDim2.fromOffset(360, 132)
+panel.Size = UDim2.new(0.9, 0, 0, 132)
+local maxPanel = Instance.new("UISizeConstraint")
+maxPanel.MaxSize = Vector2.new(360, 132)
+maxPanel.Parent = panel
 panel.Position = UDim2.fromOffset(18, 18)
 panel.BackgroundColor3 = Color3.fromRGB(22, 16, 28)
 panel.BackgroundTransparency = 0.06
@@ -46,7 +49,7 @@ end
 
 label("Titulo", "MOSQUITO EVOLUTION", 8, 29, 19, Color3.fromRGB(255, 114, 144))
 label("Status", string.format("Fase %d | Mosquito jogavel | v%s", Config.PROJECT_PHASE, Config.VERSION), 40, 22, 13, Color3.fromRGB(237, 232, 230))
-label("Controles", "WASD mover • Mouse olhar • Espaco/Ctrl altura • Shift sprint", 63, 28, 11, Color3.fromRGB(204, 197, 201))
+label("Controles", "WASD mover • Mouse olhar • Espaco/Ctrl altura • Shift sprint (toque no celular)", 63, 28, 11, Color3.fromRGB(204, 197, 201))
 local barBack = Instance.new("Frame")
 barBack.Size = UDim2.new(1, -26, 0, 10)
 barBack.Position = UDim2.fromOffset(13, 107)
