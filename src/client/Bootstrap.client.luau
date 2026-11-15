@@ -1,61 +1,77 @@
 --!strict
--- Fase 1: HUD de verificação. NÃO implementa o voo ainda.
+-- HUD de voo e inicializacao do controlador local.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-
 local player = Players.LocalPlayer
 local Config = require(ReplicatedStorage:WaitForChild("MosquitoShared"):WaitForChild("GameConfig"))
-local guiParent = player:WaitForChild("PlayerGui")
-local previous = guiParent:FindFirstChild("MosquitoBootstrapHUD")
-if previous then previous:Destroy() end
+local FlightController = require(script.Parent:WaitForChild("FlightController"))
 
+local parent = player:WaitForChild("PlayerGui")
+local previous = parent:FindFirstChild("MosquitoBootstrapHUD")
+if previous then previous:Destroy() end
 local gui = Instance.new("ScreenGui")
 gui.Name = "MosquitoBootstrapHUD"
 gui.ResetOnSpawn = false
-gui.IgnoreGuiInset = false
-gui.Parent = guiParent
+gui.Parent = parent
 
 local panel = Instance.new("Frame")
-panel.Name = "Painel"
-panel.Size = UDim2.fromOffset(340, 106)
-panel.Position = UDim2.new(0, 18, 0, 18)
+panel.Size = UDim2.fromOffset(360, 132)
+panel.Position = UDim2.fromOffset(18, 18)
 panel.BackgroundColor3 = Color3.fromRGB(22, 16, 28)
-panel.BackgroundTransparency = 0.08
+panel.BackgroundTransparency = 0.06
 panel.Parent = gui
-
 local corner = Instance.new("UICorner")
 corner.CornerRadius = UDim.new(0, 12)
 corner.Parent = panel
+local outline = Instance.new("UIStroke")
+outline.Color = Color3.fromRGB(232, 41, 75)
+outline.Thickness = 1.5
+outline.Parent = panel
 
-local border = Instance.new("UIStroke")
-border.Color = Color3.fromRGB(232, 41, 75)
-border.Thickness = 1.5
-border.Parent = panel
+local function label(name: string, content: string, y: number, height: number, size: number, color: Color3): TextLabel
+    local obj = Instance.new("TextLabel")
+    obj.Name = name
+    obj.BackgroundTransparency = 1
+    obj.Position = UDim2.fromOffset(13, y)
+    obj.Size = UDim2.new(1, -26, 0, height)
+    obj.Text = content
+    obj.Font = Enum.Font.GothamBold
+    obj.TextSize = size
+    obj.TextColor3 = color
+    obj.TextWrapped = true
+    obj.TextXAlignment = Enum.TextXAlignment.Left
+    obj.Parent = panel
+    return obj
+end
 
-local title = Instance.new("TextLabel")
-title.Name = "Titulo"
-title.BackgroundTransparency = 1
-title.Position = UDim2.fromOffset(14, 8)
-title.Size = UDim2.new(1, -28, 0, 32)
-title.Font = Enum.Font.GothamBold
-title.TextSize = 20
-title.TextColor3 = Color3.fromRGB(255, 114, 144)
-title.TextXAlignment = Enum.TextXAlignment.Left
-title.Text = "MOSQUITO EVOLUTION"
-title.Parent = panel
+label("Titulo", "MOSQUITO EVOLUTION", 8, 29, 19, Color3.fromRGB(255, 114, 144))
+label("Status", string.format("Fase %d | Mosquito jogavel | v%s", Config.PROJECT_PHASE, Config.VERSION), 40, 22, 13, Color3.fromRGB(237, 232, 230))
+label("Controles", "WASD mover • Mouse olhar • Espaco/Ctrl altura • Shift sprint", 63, 28, 11, Color3.fromRGB(204, 197, 201))
+local barBack = Instance.new("Frame")
+barBack.Size = UDim2.new(1, -26, 0, 10)
+barBack.Position = UDim2.fromOffset(13, 107)
+barBack.BackgroundColor3 = Color3.fromRGB(75, 58, 71)
+barBack.Parent = panel
+local barCorner = Instance.new("UICorner")
+barCorner.CornerRadius = UDim.new(1, 0)
+barCorner.Parent = barBack
+local bar = Instance.new("Frame")
+bar.Name = "Stamina"
+bar.Size = UDim2.fromScale(1, 1)
+bar.BackgroundColor3 = Color3.fromRGB(255, 187, 78)
+bar.Parent = barBack
+local barRound = Instance.new("UICorner")
+barRound.CornerRadius = UDim.new(1, 0)
+barRound.Parent = bar
 
-local subtitle = Instance.new("TextLabel")
-subtitle.Name = "Status"
-subtitle.BackgroundTransparency = 1
-subtitle.Position = UDim2.fromOffset(14, 43)
-subtitle.Size = UDim2.new(1, -28, 0, 48)
-subtitle.Font = Enum.Font.Gotham
-subtitle.TextSize = 13
-subtitle.TextColor3 = Color3.fromRGB(242, 231, 228)
-subtitle.TextWrapped = true
-subtitle.TextXAlignment = Enum.TextXAlignment.Left
-subtitle.TextYAlignment = Enum.TextYAlignment.Top
-subtitle.Text = string.format("Fase %d • Ambiente de testes\nLuau + Rojo sincronizados | v%s", Config.PROJECT_PHASE, Config.VERSION)
-subtitle.Parent = panel
+local function setup(character: Model)
+    FlightController.stop()
+    FlightController.start(character, function(fraction: number, sprint: boolean)
+        bar.Size = UDim2.fromScale(math.clamp(fraction, 0, 1), 1)
+        bar.BackgroundColor3 = if sprint then Color3.fromRGB(232, 68, 89) else Color3.fromRGB(255, 187, 78)
+    end)
+end
 
-print("[MOSQUITO] Cliente iniciado: HUD de teste carregado")
+player.CharacterAdded:Connect(setup)
+if player.Character then task.spawn(setup, player.Character) end
+print("[MOSQUITO] Cliente iniciado: HUD e controlador de voo carregados")
