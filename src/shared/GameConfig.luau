@@ -1,7 +1,7 @@
 --!strict
 -- Fonte de verdade para valores de gameplay compartilhados.
 local GameConfig = {
-    VERSION = "0.3.3",
+    VERSION = "0.3.4",
     PROJECT_PHASE = 3,
     UPGRADE_GROWTH = 1.3,
     STAGES = {

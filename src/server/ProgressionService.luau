@@ -4,6 +4,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage:WaitForChild("MosquitoShared"):WaitForChild("GameConfig"))
 local ProgressionService = {}
+local PersistenceService = require(script.Parent:WaitForChild("PersistenceService"))
 
 type Levels = {[string]: number}
 type BloodState = {
@@ -12,6 +13,9 @@ type BloodState = {
     comboUntil: number,
     levels: Levels,
     lastPurchase: number,
+    revision: number,
+    loaded: boolean,
+    saveMode: string,
 }
 local states: {[Player]: BloodState} = {}
 local MAX_BLOOD = 1_000_000_000
@@ -37,6 +41,7 @@ local function totalLevel(state: BloodState): number
 end
 
 local function publish(player: Player, state: BloodState)
+    player:SetAttribute("SaveStatus", state.saveMode)
     player:SetAttribute("Blood", state.blood)
     player:SetAttribute("BloodCombo", state.combo)
     player:SetAttribute("UpgradeTotal", totalLevel(state))
@@ -56,15 +61,38 @@ function ProgressionService.init(player: Player)
         comboUntil = 0,
         levels = levels,
         lastPurchase = -100,
+        revision = 0,
+        loaded = false,
+        saveMode = "Loading",
     }
     states[player] = state
     player:SetAttribute("LastBloodGain", 0)
     publish(player, state)
+    task.spawn(function()
+        local status, data = PersistenceService.load(player)
+        if states[player] ~= state then return end
+        if data then
+            state.blood = data.blood
+            for _, id in UPGRADE_IDS do state.levels[id] = data.levels[id] end
+        end
+        state.saveMode = status
+        state.loaded = true
+        publish(player, state)
+        print("[MOSQUITO] Progresso carregado para " .. player.Name .. ": " .. status)
+    end)
+end
+
+function ProgressionService.snapshot(player: Player): any?
+    local state = states[player]
+    if not state or not state.loaded or state.saveMode ~= "Ready" then return nil end
+    local levels: Levels = {}
+    for _, id in UPGRADE_IDS do levels[id] = state.levels[id] end
+    return {schema = 1, blood = state.blood, levels = levels, revision = state.revision}
 end
 
 function ProgressionService.grantDrop(player: Player, golden: boolean): number
     local state = states[player]
-    if not state then return 0 end
+    if not state or not state.loaded then return 0 end
     local now = os.clock()
     state.combo = if now <= state.comboUntil then math.min(MAX_COMBO, state.combo + 1) else 1
     state.comboUntil = now + COMBO_WINDOW
@@ -72,6 +100,7 @@ function ProgressionService.grantDrop(player: Player, golden: boolean): number
     local amount = base * (if golden then 5 else 1) * state.combo
     local granted = math.max(0, math.min(amount, MAX_BLOOD - state.blood))
     state.blood += granted
+    if granted > 0 then state.revision += 1 end
     player:SetAttribute("LastBloodGain", granted)
     player:SetAttribute("BloodCombo", state.combo)
     player:SetAttribute("Blood", state.blood)
@@ -84,6 +113,10 @@ local function buy(player: Player, upgradeId: unknown)
     if not definition then return end
     local state = states[player]
     if not state then return end
+    if not state.loaded then
+        feedbackEvent:FireClient(player, false, "Carregando progresso.")
+        return
+    end
     local now = os.clock()
     if now - state.lastPurchase < BUY_COOLDOWN then return end
     state.lastPurchase = now
@@ -105,6 +138,7 @@ local function buy(player: Player, upgradeId: unknown)
     local previousStage = stageFor(totalLevel(state))
     state.blood -= cost
     state.levels[upgradeId] = current + 1
+    state.revision += 1
     publish(player, state)
     local newStage = stageFor(totalLevel(state))
     if newStage ~= previousStage then
@@ -116,7 +150,10 @@ local function buy(player: Player, upgradeId: unknown)
 end
 
 function ProgressionService.remove(player: Player)
+    local snap = ProgressionService.snapshot(player)
+    if snap then PersistenceService.save(player, snap) end
     states[player] = nil
+    PersistenceService.clear(player)
 end
 
 function ProgressionService.start()
@@ -144,7 +181,31 @@ function ProgressionService.start()
     Players.PlayerAdded:Connect(ProgressionService.init)
     Players.PlayerRemoving:Connect(ProgressionService.remove)
     for _, player in Players:GetPlayers() do ProgressionService.init(player) end
-    print("[MOSQUITO] ProgressionService pronto: saldo e 4 upgrades validados no servidor")
+
+    task.spawn(function()
+        while task.wait(90) do
+            for _, player in Players:GetPlayers() do
+                local snap = ProgressionService.snapshot(player)
+                if snap then task.spawn(PersistenceService.save, player, snap) end
+            end
+        end
+    end)
+    game:BindToClose(function()
+        local pending = 0
+        for _, player in Players:GetPlayers() do
+            local snap = ProgressionService.snapshot(player)
+            if snap then
+                pending += 1
+                task.spawn(function()
+                    PersistenceService.save(player, snap)
+                    pending -= 1
+                end)
+            end
+        end
+        local start = os.clock()
+        while pending > 0 and os.clock() - start < 25 do task.wait(0.1) end
+    end)
+    print("[MOSQUITO] ProgressionService pronto: upgrades e save v1")
 end
 
 return ProgressionService

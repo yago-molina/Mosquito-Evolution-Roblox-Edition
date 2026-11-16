@@ -4,7 +4,7 @@ Adaptação em Roblox/Luau do jogo [Mosquito Evolution original](https://github.
 
 ## Estado
 
-**Fase 2 — concluída (v0.2.4, aprovada em testes no Studio).** Modelo de mosquito, voo livre, câmera, stamina, asas, colisões preventivas e controles mobile no emulador. **Próxima etapa: Fase 3 — coleta de sangue e evolução.**
+**Fase 3D em desenvolvimento (v0.3.4).** Fase 3C aprovada em testes no Roblox Studio. Salvar progresso com DataStore ainda precisa ser validado. A prioridade é a [fidelidade ao jogo original](docs/ORIGINAL_FIDELITY.md); o cenário de testes e os modelos atuais são temporários.
 
 ## Início rápido
 

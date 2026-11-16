@@ -71,7 +71,7 @@ barRound.Parent = bar
 -- HUD economico separado, para preservar a barra e os controles validados.
 local moneyPanel = Instance.new("Frame")
 moneyPanel.Name = "BloodPanel"
-moneyPanel.Size = UDim2.fromOffset(247, 119)
+moneyPanel.Size = UDim2.fromOffset(247, 147)
 moneyPanel.Position = UDim2.fromOffset(18, 160)
 moneyPanel.BackgroundColor3 = Color3.fromRGB(22, 16, 28)
 moneyPanel.BackgroundTransparency = 0.06
@@ -113,6 +113,31 @@ evolutionText.TextSize = 12
 evolutionText.TextXAlignment = Enum.TextXAlignment.Left
 evolutionText.TextTruncate = Enum.TextTruncate.AtEnd
 evolutionText.Parent = moneyPanel
+
+local saveText = Instance.new("TextLabel")
+saveText.Name = "SaveStatus"
+saveText.Size = UDim2.new(1, -20, 0, 22)
+saveText.Position = UDim2.fromOffset(10, 116)
+saveText.BackgroundTransparency = 1
+saveText.Font = Enum.Font.Gotham
+saveText.TextSize = 11
+saveText.TextXAlignment = Enum.TextXAlignment.Left
+saveText.Parent = moneyPanel
+local function updateSaveStatus()
+    local status = player:GetAttribute("SaveStatus")
+    if status == "Ready" then
+        saveText.Text = "SALVAMENTO: ATIVO"
+        saveText.TextColor3 = Color3.fromRGB(146, 232, 165)
+    elseif status == "Loading" or status == nil then
+        saveText.Text = "SALVAMENTO: CARREGANDO"
+        saveText.TextColor3 = Color3.fromRGB(250, 204, 128)
+    else
+        saveText.Text = "SALVAMENTO: INDISPONÍVEL"
+        saveText.TextColor3 = Color3.fromRGB(255, 143, 143)
+    end
+end
+player:GetAttributeChangedSignal("SaveStatus"):Connect(updateSaveStatus)
+updateSaveStatus()
 
 local previousEvolution: string? = nil
 local function updateEvolution()
