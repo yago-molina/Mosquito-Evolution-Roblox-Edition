@@ -126,13 +126,16 @@ saveText.Parent = moneyPanel
 local function updateSaveStatus()
     local status = player:GetAttribute("SaveStatus")
     if status == "Ready" then
-        saveText.Text = "SALVAMENTO: ATIVO"
+        saveText.Text = "SAVE: LEITURA OK / ATIVO"
         saveText.TextColor3 = Color3.fromRGB(146, 232, 165)
     elseif status == "Loading" or status == nil then
         saveText.Text = "SALVAMENTO: CARREGANDO"
         saveText.TextColor3 = Color3.fromRGB(250, 204, 128)
+    elseif status == "WriteFailed" then
+        saveText.Text = "SAVE: FALHA DE GRAVAÇÃO"
+        saveText.TextColor3 = Color3.fromRGB(255, 143, 143)
     else
-        saveText.Text = "SALVAMENTO: INDISPONÍVEL"
+        saveText.Text = "SAVE: OFFLINE / NÃO SALVA"
         saveText.TextColor3 = Color3.fromRGB(255, 143, 143)
     end
 end

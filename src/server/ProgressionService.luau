@@ -84,7 +84,7 @@ end
 
 function ProgressionService.snapshot(player: Player): any?
     local state = states[player]
-    if not state or not state.loaded or state.saveMode ~= "Ready" then return nil end
+    if not state or not state.loaded or (state.saveMode ~= "Ready" and state.saveMode ~= "WriteFailed") then return nil end
     local levels: Levels = {}
     for _, id in UPGRADE_IDS do levels[id] = state.levels[id] end
     return {schema = 1, blood = state.blood, levels = levels, revision = state.revision}
@@ -149,9 +149,25 @@ local function buy(player: Player, upgradeId: unknown)
     print(string.format("[MOSQUITO] %s comprou %s nv%d por %d sangue", player.Name, upgradeId, state.levels[upgradeId], cost))
 end
 
-function ProgressionService.remove(player: Player)
+function ProgressionService.savePlayer(player: Player)
     local snap = ProgressionService.snapshot(player)
-    if snap then PersistenceService.save(player, snap) end
+    if not snap then return end
+    local ok, reason = PersistenceService.save(player, snap)
+    local state = states[player]
+    if state then
+        if ok then
+            state.saveMode = "Ready"
+            player:SetAttribute("SaveStatus", "Ready")
+        else
+            state.saveMode = "WriteFailed"
+            player:SetAttribute("SaveStatus", "WriteFailed")
+            warn("[MOSQUITO][SAVE] Falha para " .. player.Name .. ": " .. reason)
+        end
+    end
+end
+
+function ProgressionService.remove(player: Player)
+    ProgressionService.savePlayer(player)
     states[player] = nil
     PersistenceService.clear(player)
 end
@@ -185,19 +201,17 @@ function ProgressionService.start()
     task.spawn(function()
         while task.wait(90) do
             for _, player in Players:GetPlayers() do
-                local snap = ProgressionService.snapshot(player)
-                if snap then task.spawn(PersistenceService.save, player, snap) end
+                task.spawn(ProgressionService.savePlayer, player)
             end
         end
     end)
     game:BindToClose(function()
         local pending = 0
         for _, player in Players:GetPlayers() do
-            local snap = ProgressionService.snapshot(player)
-            if snap then
+            if ProgressionService.snapshot(player) then
                 pending += 1
                 task.spawn(function()
-                    PersistenceService.save(player, snap)
+                    ProgressionService.savePlayer(player)
                     pending -= 1
                 end)
             end
@@ -205,7 +219,7 @@ function ProgressionService.start()
         local start = os.clock()
         while pending > 0 and os.clock() - start < 25 do task.wait(0.1) end
     end)
-    print("[MOSQUITO] ProgressionService pronto: upgrades e save v1")
+    print("[MOSQUITO] ProgressionService pronto: upgrades e save v1 com diagnosticos")
 end
 
 return ProgressionService
