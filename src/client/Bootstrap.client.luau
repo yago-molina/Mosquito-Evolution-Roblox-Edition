@@ -71,7 +71,7 @@ barRound.Parent = bar
 -- HUD economico separado, para preservar a barra e os controles validados.
 local moneyPanel = Instance.new("Frame")
 moneyPanel.Name = "BloodPanel"
-moneyPanel.Size = UDim2.fromOffset(220, 89)
+moneyPanel.Size = UDim2.fromOffset(247, 119)
 moneyPanel.Position = UDim2.fromOffset(18, 160)
 moneyPanel.BackgroundColor3 = Color3.fromRGB(22, 16, 28)
 moneyPanel.BackgroundTransparency = 0.06
@@ -101,6 +101,33 @@ comboText.Font = Enum.Font.Gotham
 comboText.TextSize = 14
 comboText.TextXAlignment = Enum.TextXAlignment.Left
 comboText.Parent = moneyPanel
+
+local evolutionText = Instance.new("TextLabel")
+evolutionText.Name = "Evolucao"
+evolutionText.Size = UDim2.new(1, -20, 0, 28)
+evolutionText.Position = UDim2.fromOffset(10, 84)
+evolutionText.BackgroundTransparency = 1
+evolutionText.TextColor3 = Color3.fromRGB(255, 209, 123)
+evolutionText.Font = Enum.Font.GothamBold
+evolutionText.TextSize = 12
+evolutionText.TextXAlignment = Enum.TextXAlignment.Left
+evolutionText.TextTruncate = Enum.TextTruncate.AtEnd
+evolutionText.Parent = moneyPanel
+
+local previousEvolution: string? = nil
+local function updateEvolution()
+    local stage = player:GetAttribute("EvolutionStage")
+    local total = player:GetAttribute("UpgradeTotal")
+    local current = if typeof(stage) == "string" then stage else "Larva voadora"
+    evolutionText.Text = string.format("EVOLUÇÃO %d | %s", if typeof(total) == "number" then total else 0, current)
+    if previousEvolution and previousEvolution ~= current then
+        print("[MOSQUITO] Novo estagio desbloqueado: " .. current)
+    end
+    previousEvolution = current
+end
+player:GetAttributeChangedSignal("EvolutionStage"):Connect(updateEvolution)
+player:GetAttributeChangedSignal("UpgradeTotal"):Connect(updateEvolution)
+updateEvolution()
 
 local function updateBlood()
     local total = player:GetAttribute("Blood")

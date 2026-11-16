@@ -88,8 +88,10 @@ function ShopUI.mount(gui: ScreenGui)
     end
 
     local open = false
+    player:SetAttribute("MosquitoShopOpen", false)
     local function toggle()
         open = not open
+        player:SetAttribute("MosquitoShopOpen", open)
         panel.Visible = open
         opener.Text = if open then "FECHAR [U]" else "UPGRADES [U]"
         if not UserInputService.TouchEnabled then

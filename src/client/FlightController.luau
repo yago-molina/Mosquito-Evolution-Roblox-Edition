@@ -44,7 +44,12 @@ collisionParams.FilterType = Enum.RaycastFilterType.Exclude
 collisionParams.RespectCanCollide = true
 
 local function pressed(code: Enum.KeyCode): boolean
-    return keys[code] == true
+    -- TouchButtons write to keys. Hardware keyboard is sampled every physics frame:
+    -- InputBegan/Ended can be consumed by CoreGui or shortcuts (Ctrl + Space)
+    -- and leave stale states, canceling W against S or Space against Ctrl.
+    if player:GetAttribute("MosquitoShopOpen") == true then return false end
+    if UserInputService:GetFocusedTextBox() then return false end
+    return keys[code] == true or UserInputService:IsKeyDown(code)
 end
 
 local function cleanup(): ()
@@ -165,17 +170,6 @@ function FlightController.start(character: Model, onStamina: (number, boolean) -
     timeAlive = 0
     active = true
 
-    inputBeganConnection = UserInputService.InputBegan:Connect(function(input: InputObject, processed: boolean)
-        if processed then return end
-        if input.UserInputType == Enum.UserInputType.Keyboard then
-            keys[input.KeyCode] = true
-        end
-    end)
-    inputEndedConnection = UserInputService.InputEnded:Connect(function(input: InputObject)
-        if input.UserInputType == Enum.UserInputType.Keyboard then
-            keys[input.KeyCode] = false
-        end
-    end)
     mouseConnection = UserInputService.InputChanged:Connect(function(input: InputObject, processed: boolean)
         if processed then return end
         if input.UserInputType == Enum.UserInputType.MouseMovement and active then
@@ -262,7 +256,7 @@ function FlightController.start(character: Model, onStamina: (number, boolean) -
             end
         end
     end)
-    print("[MOSQUITO] Voo ativo: PC e controles de toque; colisao preventiva habilitada")
+    print("[MOSQUITO] Voo ativo: leitura fisica de teclas, toque e colisao preventiva")
 end
 
 function FlightController.stop(): ()

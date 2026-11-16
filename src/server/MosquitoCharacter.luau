@@ -7,6 +7,7 @@ local function newPart(parent: Instance, name: string, size: Vector3, offset: CF
     local part = Instance.new("Part")
     part.Name = name
     part.Size = size
+    part:SetAttribute("OriginalSize", size)
     part.Color = color
     part.Material = material or Enum.Material.SmoothPlastic
     part.Transparency = transparency or 0
@@ -50,6 +51,7 @@ local function wingDetail(wingPart: Part, name: string, from: Vector3, to: Vecto
     detail.Name = name
     detail.Shape = Enum.PartType.Ball
     detail.Size = Vector3.new(thickness, thickness, delta.Magnitude)
+    detail:SetAttribute("OriginalSize", detail.Size)
     detail.Material = Enum.Material.SmoothPlastic
     detail.Color = Color3.fromRGB(225, 243, 250)
     detail.Transparency = 0.25

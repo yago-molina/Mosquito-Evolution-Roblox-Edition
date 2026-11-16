@@ -6,6 +6,7 @@ local Config = require(ReplicatedStorage:WaitForChild("MosquitoShared"):WaitForC
 local MosquitoCharacter = require(script.Parent:WaitForChild("MosquitoCharacter"))
 local ProgressionService = require(script.Parent:WaitForChild("ProgressionService"))
 local BloodService = require(script.Parent:WaitForChild("BloodService"))
+local EvolutionVisual = require(script.Parent:WaitForChild("EvolutionVisual"))
 
 local old = workspace:FindFirstChild("Mosquito_Fase1_Demo")
 if old then old:Destroy() end
@@ -41,8 +42,17 @@ local function onCharacter(character: Model)
     -- Aumentar a altura inicial para testar voo antes de haver controles.
     character:PivotTo(CFrame.new(0, 7, 18))
     MosquitoCharacter.setup(character)
+    local owner = Players:GetPlayerFromCharacter(character)
+    local total = if owner then owner:GetAttribute("UpgradeTotal") else 0
+    EvolutionVisual.apply(character, if typeof(total) == "number" then total else 0, false)
 end
 local function onPlayer(player: Player)
+    player:GetAttributeChangedSignal("UpgradeTotal"):Connect(function()
+        local character = player.Character
+        if not character then return end
+        local level = player:GetAttribute("UpgradeTotal")
+        if typeof(level) == "number" then EvolutionVisual.apply(character, level, true) end
+    end)
     player.CharacterAdded:Connect(onCharacter)
     if player.Character then task.spawn(onCharacter, player.Character) end
 end
