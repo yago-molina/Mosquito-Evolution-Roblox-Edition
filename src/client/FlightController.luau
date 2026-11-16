@@ -47,7 +47,11 @@ local function pressed(code: Enum.KeyCode): boolean
     -- TouchButtons write to keys. Hardware keyboard is sampled every physics frame:
     -- InputBegan/Ended can be consumed by CoreGui or shortcuts (Ctrl + Space)
     -- and leave stale states, canceling W against S or Space against Ctrl.
-    if player:GetAttribute("MosquitoShopOpen") == true then return false end
+    -- O painel visivel e a fonte de verdade; o atributo tambem e atualizado pela loja.
+    local playerGui = player:FindFirstChildOfClass("PlayerGui")
+    local mainGui = if playerGui then playerGui:FindFirstChild("MosquitoBootstrapHUD") else nil
+    local shopPanel = if mainGui then mainGui:FindFirstChild("Loja") else nil
+    if shopPanel and shopPanel:IsA("GuiObject") and shopPanel.Visible then return false end
     if UserInputService:GetFocusedTextBox() then return false end
     return keys[code] == true or UserInputService:IsKeyDown(code)
 end

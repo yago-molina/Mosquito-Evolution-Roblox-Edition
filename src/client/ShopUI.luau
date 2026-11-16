@@ -2,6 +2,7 @@
 -- Loja de upgrades: GUI local, custos calculados do config, servidor valida compras.
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
+local ContextActionService = game:GetService("ContextActionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local player = Players.LocalPlayer
 local Config = require(ReplicatedStorage:WaitForChild("MosquitoShared"):WaitForChild("GameConfig"))
@@ -88,30 +89,56 @@ function ShopUI.mount(gui: ScreenGui)
     end
 
     local open = false
-    player:SetAttribute("MosquitoShopOpen", false)
-    local function toggle()
-        open = not open
-        player:SetAttribute("MosquitoShopOpen", open)
+    local function setOpen(shouldOpen: boolean)
+        open = shouldOpen
         panel.Visible = open
+        -- Reflete SOMENTE o estado real do painel; nada deve ficar travado.
+        player:SetAttribute("MosquitoShopOpen", open)
         opener.Text = if open then "FECHAR [U]" else "UPGRADES [U]"
         if not UserInputService.TouchEnabled then
             UserInputService.MouseBehavior = if open then Enum.MouseBehavior.Default else Enum.MouseBehavior.LockCenter
             UserInputService.MouseIconEnabled = open
         end
+        print("[MOSQUITO] Loja " .. (if open then "aberta" else "fechada") .. "; voo " .. (if open then "pausado" else "liberado"))
     end
-    opener.Activated:Connect(toggle)
+    setOpen(false)
+
+    opener.Activated:Connect(function()
+        setOpen(not open)
+    end)
+
+    -- Um InputBegan com 'processed=true' ocorre ao interagir com CoreGui ou
+    -- clicar em UI: nao podemos perder a tecla U ao tentar fechar.
+    -- ContextActionService trata a tecla antes dos comandos de jogo.
+    ContextActionService:UnbindAction("MosquitoToggleShop")
+    ContextActionService:BindActionAtPriority("MosquitoToggleShop", function(
+        _name: string,
+        inputState: Enum.UserInputState,
+        _input: InputObject
+    )
+        if inputState == Enum.UserInputState.Begin and not UserInputService:GetFocusedTextBox() then
+            setOpen(not open)
+        end
+        return Enum.ContextActionResult.Sink
+    end, false, 3000, Enum.KeyCode.U)
 
     UserInputService.InputBegan:Connect(function(input: InputObject, processed: boolean)
-        if processed or input.UserInputType ~= Enum.UserInputType.Keyboard then return end
-        if input.KeyCode == Enum.KeyCode.U then
-            toggle()
-        elseif open then
-            local index = if input.KeyCode == Enum.KeyCode.One then 1
-                elseif input.KeyCode == Enum.KeyCode.Two then 2
-                elseif input.KeyCode == Enum.KeyCode.Three then 3
-                elseif input.KeyCode == Enum.KeyCode.Four then 4 else nil
-            if index then buyRequest:FireServer(ids[index]) end
+        if input.UserInputType ~= Enum.UserInputType.Keyboard then return end
+        if input.KeyCode == Enum.KeyCode.Escape and open then
+            setOpen(false)
+            return
         end
+        if processed or not open or UserInputService:GetFocusedTextBox() then return end
+        local index = if input.KeyCode == Enum.KeyCode.One then 1
+            elseif input.KeyCode == Enum.KeyCode.Two then 2
+            elseif input.KeyCode == Enum.KeyCode.Three then 3
+            elseif input.KeyCode == Enum.KeyCode.Four then 4 else nil
+        if index then buyRequest:FireServer(ids[index]) end
+    end)
+
+    -- Ao respawnar, a loja nunca deve manter o voo pausado.
+    player.CharacterAdded:Connect(function()
+        setOpen(false)
     end)
 
     local function update()
@@ -140,7 +167,7 @@ function ShopUI.mount(gui: ScreenGui)
         messages.TextColor3 = if success then Color3.fromRGB(149, 241, 162) else Color3.fromRGB(255, 152, 152)
     end)
     update()
-    print("[MOSQUITO] Loja inicializada: tecla U, compras 1-4 ou toque")
+    print("[MOSQUITO] Loja inicializada: U para abrir/fechar, Esc para fechar, compras 1-4 ou toque")
 end
 
 return ShopUI
